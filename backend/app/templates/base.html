@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="{% block meta_description %}Smart Resume Analyzer — AI-powered resume evaluation, ATS keyword checking, and personalized improvement suggestions.{% endblock %}" />
+  <title>{% block title %}Smart Resume Analyzer{% endblock %} | AI Resume Feedback</title>
+
+  <!-- Preconnect for Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- Skip navigation link -->
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<!-- Animated Background -->
+<div class="bg-animated" aria-hidden="true"></div>
+
+<!-- ═══════════════════════════ NAVBAR ═══════════════════════════ -->
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+
+  <!-- Brand -->
+  <a href="{{ url_for('main.index') }}" class="navbar-brand" aria-label="Smart Resume Analyzer home">
+    <div class="brand-icon" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="brand-name">Resume<span class="brand-gradient">AI</span></span>
+  </a>
+
+  <!-- Desktop links -->
+  <div class="navbar-links" id="desktop-nav">
+    <a href="{{ url_for('main.index') }}"
+       class="nav-link{% if request.endpoint == 'main.index' %} active{% endif %}"
+       {% if request.endpoint == 'main.index' %}aria-current="page"{% endif %}>
+      Analyze
+    </a>
+    <a href="{{ url_for('main.history') }}"
+       class="nav-link{% if request.endpoint == 'main.history' %} active{% endif %}"
+       {% if request.endpoint == 'main.history' %}aria-current="page"{% endif %}>
+      History
+    </a>
+    <a href="{{ url_for('builder.index') }}"
+       class="nav-cta{% if request.endpoint == 'builder.index' %} active{% endif %}"
+       {% if request.endpoint == 'builder.index' %}aria-current="page"{% endif %}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+      </svg>
+      Builder
+    </a>
+  </div>
+
+  <!-- Right controls -->
+  <div style="display:flex;align-items:center;gap:var(--space-2);">
+    <!-- Theme toggle -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode" title="Toggle theme">
+      <span id="theme-icon" aria-hidden="true">🌙</span>
+    </button>
+
+    <!-- Hamburger (mobile) -->
+    <button class="hamburger" id="hamburger" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobile-nav">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Nav Drawer -->
+<div class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation" role="navigation">
+  <a href="{{ url_for('main.index') }}"
+     class="nav-link{% if request.endpoint == 'main.index' %} active{% endif %}">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    Analyze Resume
+  </a>
+  <a href="{{ url_for('main.history') }}"
+     class="nav-link{% if request.endpoint == 'main.history' %} active{% endif %}">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 8v4l3 3M3.05 11a9 9 0 1 0 .5-3"/><path d="M3 4v4h4"/></svg>
+    History
+  </a>
+  <a href="{{ url_for('builder.index') }}" class="nav-cta">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+    Resume Builder
+  </a>
+</div>
+
+<!-- ═══════════════════════════ TOAST AREA ═══════════════════════════ -->
+<div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="false" role="status"></div>
+
+<!-- Flash Messages from Jinja -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container" role="alert" aria-live="polite">
+      {% for category, message in messages %}
+        <div class="flash {{ category }}" role="alert">
+          <span aria-hidden="true">{{ '⚠️' if category == 'error' else '✅' }}</span>
+          <span>{{ message }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- ═══════════════════════════ MAIN ═══════════════════════════ -->
+<main id="main-content" tabindex="-1">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+<footer class="footer" aria-label="Site footer">
+  <div class="container">
+    <div class="footer-inner">
+      <span>
+        Built with
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--danger)" aria-label="love" style="display:inline;vertical-align:-2px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        — Smart Resume Analyzer &nbsp;|&nbsp; AI Capstone Project
+      </span>
+      <div class="footer-links">
+        <a href="{{ url_for('main.index') }}">Analyze</a>
+        <a href="{{ url_for('builder.index') }}">Builder</a>
+        <a href="{{ url_for('main.history') }}">History</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════ SCRIPTS ═══════════════════════════ -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_scripts %}{% endblock %}
+
+</body>
+</html>

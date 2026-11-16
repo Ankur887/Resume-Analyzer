@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Server Error{% endblock %}
+{% block meta_description %}Something went wrong on our end. Please try again.{% endblock %}
+
+{% block content %}
+<div class="error-page fade-in">
+
+  <div class="error-illustration" aria-hidden="true">
+    <svg width="160" height="120" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="30" y="20" width="100" height="80" rx="8" fill="rgba(255,179,71,0.08)" stroke="rgba(255,179,71,0.3)" stroke-width="1.5"/>
+      <rect x="45" y="38" width="50" height="6" rx="3" fill="rgba(255,179,71,0.3)"/>
+      <rect x="45" y="52" width="70" height="4" rx="2" fill="rgba(255,255,255,0.08)"/>
+      <rect x="45" y="62" width="60" height="4" rx="2" fill="rgba(255,255,255,0.08)"/>
+      <circle cx="128" cy="28" r="20" fill="rgba(255,179,71,0.12)" stroke="rgba(255,179,71,0.4)" stroke-width="1.5"/>
+      <path d="M128 20v8M128 32v2" stroke="var(--warning)" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <div class="error-code" style="background:var(--grad-warning);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" aria-label="Error 500">500</div>
+
+  <h1 class="error-title">Something Went Wrong</h1>
+
+  <p class="error-desc">
+    Our server encountered an unexpected error while processing your request.
+    This is on our end — please try again in a moment.
+  </p>
+
+  <div style="display:flex;gap:var(--space-4);flex-wrap:wrap;justify-content:center;">
+    <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-lg">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to Home
+    </a>
+    <button class="btn btn-outline btn-lg" onclick="location.reload()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Try Again
+    </button>
+  </div>
+</div>
+{% endblock %}
+

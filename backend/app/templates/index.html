@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Smart Resume Analyzer{% endblock %}
+{% block meta_description %}Upload your resume and get instant AI-powered feedback. Check ATS compatibility, resume score, and get personalized improvement suggestions.{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="container">
+
+    <!-- ═══════════════ HERO ═══════════════ -->
+    <section class="hero fade-in" aria-labelledby="hero-heading">
+      <div class="hero-badge" aria-label="AI-Powered Analysis">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        AI-Powered Analysis
+      </div>
+
+      <h1 class="hero-title" id="hero-heading">
+        Land Your Dream Job with<br/>
+        <span class="gradient-text">Smarter Resume Insights</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Upload your resume and get an instant score, ATS keyword analysis,
+        and prioritized improvements — tailored to your target role in seconds.
+      </p>
+
+      <div class="hero-actions">
+        <a href="#upload-section" class="btn btn-primary btn-lg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Analyze My Resume
+        </a>
+        <a href="{{ url_for('builder.index') }}" class="btn btn-outline btn-lg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          Build from Scratch
+        </a>
+      </div>
+    </section>
+
+    <!-- ═══════════════ HOW IT WORKS ═══════════════ -->
+    <section class="how-steps fade-in delay-1" aria-labelledby="how-heading">
+      <h2 class="sr-only" id="how-heading">How It Works</h2>
+
+      <div class="how-step">
+        <div class="how-number" aria-hidden="true">1</div>
+        <div class="how-title">Upload Your Resume</div>
+        <div class="how-desc">Drop a PDF or DOCX file — we parse it securely and extract your content instantly.</div>
+      </div>
+
+      <div class="how-step">
+        <div class="how-number" aria-hidden="true">2</div>
+        <div class="how-title">Pick Your Target Role</div>
+        <div class="how-desc">Select the job role you're applying for so the ATS keyword check is relevant to you.</div>
+      </div>
+
+      <div class="how-step">
+        <div class="how-number" aria-hidden="true">3</div>
+        <div class="how-title">Get Actionable Feedback</div>
+        <div class="how-desc">Receive a score, missing keywords, and prioritized fixes you can apply right now.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ UPLOAD FORM ═══════════════ -->
+    <section class="upload-section fade-in delay-2" id="upload-section" aria-labelledby="upload-heading">
+      <div class="card card-elevated card-lg">
+        <h2 class="section-title" id="upload-heading" style="margin-bottom:var(--space-6);">
+          <span class="section-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </span>
+          Upload Your Resume
+        </h2>
+
+        <form id="upload-form" method="POST" action="{{ url_for('main.analyze') }}" enctype="multipart/form-data" novalidate>
+
+          <!-- Drop Zone -->
+          <div
+            id="upload-zone"
+            class="upload-zone"
+            role="button"
+            tabindex="0"
+            aria-label="Click or drag and drop your resume here. PDF and DOCX supported, max 5 MB."
+            aria-describedby="upload-hint"
+          >
+            <div class="upload-icon" aria-hidden="true">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="11" x2="12" y2="17"/>
+                <polyline points="9 14 12 11 15 14"/>
+              </svg>
+            </div>
+
+            <p class="upload-title">Drop your resume here</p>
+            <p class="upload-subtitle" id="upload-hint">or click to browse — PDF &amp; DOCX supported (max 5 MB)</p>
+
+            <input
+              type="file"
+              id="resume-file"
+              name="resume_file"
+              class="file-input-hidden"
+              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              aria-label="Select resume file"
+            />
+
+            <div id="file-selected-info" class="file-selected-info" aria-live="polite">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              <span id="selected-file-name"></span>
+            </div>
+
+            <div class="upload-progress" id="upload-progress" aria-hidden="true">
+              <div class="upload-progress-fill" id="upload-progress-fill"></div>
+            </div>
+
+            <p class="zone-error-msg" id="zone-error" role="alert"></p>
+          </div>
+
+          <!-- Target Role -->
+          <div class="form-group" style="margin-top:var(--space-5);">
+            <label class="form-label required" for="target-role">Target Job Role</label>
+            <select id="target-role" name="target_role" class="form-select" required aria-required="true">
+              <option value="" disabled selected>Select the role you're applying for…</option>
+              {% for role in roles %}
+                <option value="{{ role }}">{{ role }}</option>
+              {% endfor %}
+            </select>
+            <p class="form-helper">We use this to check for role-specific ATS keywords.</p>
+          </div>
+
+          <!-- Submit -->
+          <button type="submit" id="submit-btn" class="btn btn-primary btn-submit" aria-label="Analyze my resume">
+            <span class="btn-text">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              Analyze My Resume
+            </span>
+            <span class="btn-loading" aria-live="polite">
+              <span class="spinner" aria-hidden="true"></span>
+              <span>Analyzing… this may take a moment</span>
+            </span>
+          </button>
+
+          <!-- Privacy note -->
+          <div class="trust-note" style="margin-top:var(--space-5);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Your resume is processed in memory and never stored permanently. Session-only.</span>
+          </div>
+
+        </form>
+      </div>
+    </section>
+
+    <!-- ═══════════════ FEATURES ═══════════════ -->
+    <section class="features-grid fade-in delay-3" aria-labelledby="features-heading" style="margin-top:var(--space-20);">
+      <h2 class="sr-only" id="features-heading">Key Features</h2>
+
+      <div class="card feature-card card-lift">
+        <div class="feature-icon purple" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" aria-hidden="true"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        </div>
+        <h3 class="feature-title">Resume Score</h3>
+        <p class="feature-desc">Get a detailed score out of 100 across 7 weighted evaluation categories with specific notes.</p>
+      </div>
+
+      <div class="card feature-card card-lift">
+        <div class="feature-icon blue" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </div>
+        <h3 class="feature-title">ATS Keyword Check</h3>
+        <p class="feature-desc">Match your resume against role-specific keywords that ATS systems scan for.</p>
+      </div>
+
+      <div class="card feature-card card-lift">
+        <div class="feature-icon green" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        </div>
+        <h3 class="feature-title">Smart Feedback</h3>
+        <p class="feature-desc">Receive actionable, prioritized suggestions to close the gap between your resume and your target role.</p>
+      </div>
+
+      <div class="card feature-card card-lift">
+        <div class="feature-icon orange" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </div>
+        <h3 class="feature-title">Analysis Dashboard</h3>
+        <p class="feature-desc">View your results in an interactive dashboard with animated score gauges and category breakdowns.</p>
+      </div>
+
+      <a href="{{ url_for('builder.index') }}" class="card feature-card card-lift" style="display:block;text-decoration:none;" aria-label="Open Resume Builder">
+        <div class="feature-icon purple" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-light)" stroke-width="2" aria-hidden="true"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+        </div>
+        <h3 class="feature-title">Resume Builder</h3>
+        <p class="feature-desc">Build an ATS-friendly resume from scratch with live scoring, AI rewriting, and 5 professional templates.</p>
+        <div class="badge badge-accent" style="margin-top:var(--space-3);">5 Templates</div>
+      </a>
+
+    </section>
+
+  </div>
+</div>
+{% endblock %}

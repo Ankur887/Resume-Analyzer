@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results — {{ resume.original_filename }}{% endblock %}
+{% block meta_description %}Resume analysis results for {{ resume.original_filename }}. Score: {{ analysis.resume_score }}/100. ATS: {{ analysis.ats_score }}%.{% endblock %}
+
+{% block extra_head %}
+<!-- SVG gradient defs are embedded inline in the page -->
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="container">
+
+    <!-- SVG gradient definitions (referenced by score rings) -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <linearGradient id="grad-resume" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#6c63ff"/>
+          <stop offset="50%" stop-color="#a855f7"/>
+          <stop offset="100%" stop-color="#ec4899"/>
+        </linearGradient>
+        <linearGradient id="grad-ats" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00d68f"/>
+          <stop offset="100%" stop-color="#00b4d8"/>
+        </linearGradient>
+      </defs>
+    </svg>
+
+    <!-- Page Header -->
+    <div class="fade-in" style="margin-bottom: var(--space-6);">
+      <a href="{{ url_for('main.index') }}" class="btn btn-outline btn-sm" style="margin-bottom: var(--space-4);">
+        ← Analyze Another Resume
+      </a>
+      <h1 class="section-title" style="font-size: var(--font-size-3xl);">
+        <span class="section-icon">📊</span>
+        Analysis Results
+      </h1>
+    </div>
+
+    <!-- Resume Info Bar -->
+    <div class="card resume-info-bar fade-in delay-1">
+      <div class="resume-info-icon" aria-hidden="true">
+        {{ '📄' if resume.file_type == '.pdf' else '📝' }}
+      </div>
+      <div class="resume-info-details">
+        <div class="resume-info-name">{{ resume.original_filename }}</div>
+        <div class="resume-info-meta">
+          {{ resume.word_count }} words &bull;
+          Uploaded {{ resume.uploaded_at.strftime('%b %d, %Y at %H:%M') }}
+          {% if resume.email %} &bull; {{ resume.email }}{% endif %}
+        </div>
+      </div>
+      <div class="resume-info-role">
+        🎯 &nbsp;{{ analysis.target_role }}
+      </div>
+    </div>
+
+    <!-- Score Rings -->
+    <div class="scores-hero fade-in delay-2">
+
+      <!-- Resume Score -->
+      <div class="card card-elevated score-ring-card">
+        <div class="score-ring-wrapper" aria-label="Resume score: {{ analysis.resume_score }} out of 100">
+          <svg class="score-ring-svg" viewBox="0 0 160 160" aria-hidden="true">
+            <circle class="score-ring-bg" cx="80" cy="80" r="70"/>
+            <circle
+              class="score-ring-progress ring-resume"
+              cx="80" cy="80" r="70"
+              data-score="{{ analysis.resume_score }}"
+            />
+          </svg>
+          <div class="score-ring-center">
+            <span class="score-number" data-target="{{ analysis.resume_score }}">0</span>
+            <span class="score-label-small">/ 100</span>
+          </div>
+        </div>
+        <div class="score-title">Resume Score</div>
+        {% set grade = analysis.category_scores | map(attribute='points') | sum %}
+        {% if analysis.resume_score >= 80 %}
+          <span class="score-grade grade-excellent">✨ Excellent</span>
+        {% elif analysis.resume_score >= 60 %}
+          <span class="score-grade grade-good">👍 Good</span>
+        {% elif analysis.resume_score >= 40 %}
+          <span class="score-grade grade-average">⚠️ Average</span>
+        {% else %}
+          <span class="score-grade grade-needs">🔴 Needs Work</span>
+        {% endif %}
+      </div>
+
+      <!-- ATS Score -->
+      <div class="card card-elevated score-ring-card">
+        <div class="score-ring-wrapper" aria-label="ATS score: {{ analysis.ats_score }} percent">
+          <svg class="score-ring-svg" viewBox="0 0 160 160" aria-hidden="true">
+            <circle class="score-ring-bg" cx="80" cy="80" r="70"/>
+            <circle
+              class="score-ring-progress ring-ats"
+              cx="80" cy="80" r="70"
+              data-score="{{ analysis.ats_score }}"
+            />
+          </svg>
+          <div class="score-ring-center">
+            <span class="score-number" data-target="{{ analysis.ats_score }}">0</span>
+            <span class="score-label-small">%</span>
+          </div>
+        </div>
+        <div class="score-title">ATS Compatibility</div>
+        {% if analysis.ats_score >= 70 %}
+          <span class="score-grade grade-excellent">✅ ATS-Friendly</span>
+        {% elif analysis.ats_score >= 40 %}
+          <span class="score-grade grade-average">⚠️ Moderate</span>
+        {% else %}
+          <span class="score-grade grade-needs">🔴 Low Match</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Category Breakdown -->
+    <section aria-labelledby="category-heading" class="fade-in delay-3">
+      <h2 class="section-title" id="category-heading">
+        <span class="section-icon">📋</span>
+        Score Breakdown
+      </h2>
+      <div class="category-grid">
+        {% for cat in analysis.category_scores %}
+          {% set pct = cat.percentage %}
+          <div class="card card-sm category-card">
+            <div class="category-header">
+              <span class="category-name">{{ cat.label }}</span>
+              <span class="category-pts">{{ cat.points | int }}/{{ cat.max_points | int }}</span>
+            </div>
+            <div class="progress-bar-wrapper" aria-label="{{ cat.label }} progress: {{ pct }}%">
+              <div
+                class="progress-bar-fill {% if pct >= 70 %}pb-high{% elif pct >= 40 %}pb-medium{% else %}pb-low{% endif %}"
+                data-width="{{ pct }}"
+                role="progressbar"
+                aria-valuenow="{{ pct }}"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              ></div>
+            </div>
+            {% if cat.notes %}
+              <ul class="category-notes" aria-label="Notes for {{ cat.label }}">
+                {% for note in cat.notes %}
+                  <li>{{ note }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p style="font-size:var(--font-size-xs);color:var(--success);">✓ Looking great!</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Skills Analysis -->
+    <section aria-labelledby="skills-heading" class="skills-section fade-in delay-3">
+      <h2 class="section-title" id="skills-heading">
+        <span class="section-icon">🔑</span>
+        Keyword Analysis for {{ analysis.target_role }}
+      </h2>
+
+      <div class="skills-grid">
+
+        <!-- Matched Skills -->
+        <div class="card skills-panel">
+          <div class="skills-panel-title matched">
+            <span>✅</span>
+            <span>Matched Skills ({{ analysis.matched_skills | length }})</span>
+          </div>
+          <div class="skills-tags" aria-label="Matched skills">
+            {% if analysis.matched_skills %}
+              {% for skill in analysis.matched_skills %}
+                <span class="skill-tag matched">{{ skill }}</span>
+              {% endfor %}
+            {% else %}
+              <p style="font-size:var(--font-size-sm);color:var(--text-muted);">No matching skills found.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Missing Skills -->
+        <div class="card skills-panel">
+          <div class="skills-panel-title missing">
+            <span>❌</span>
+            <span>Missing Skills ({{ analysis.missing_skills | length }})</span>
+          </div>
+          <div class="skills-tags" aria-label="Missing skills">
+            {% if analysis.missing_skills %}
+              {% for skill in analysis.missing_skills %}
+                <span class="skill-tag missing">{{ skill }}</span>
+              {% endfor %}
+            {% else %}
+              <p style="font-size:var(--font-size-sm);color:var(--success);">🎉 All required keywords found!</p>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Smart Suggestions -->
+    <section aria-labelledby="suggestions-heading" class="fade-in delay-4">
+      <h2 class="section-title" id="suggestions-heading">
+        <span class="section-icon">💡</span>
+        Smart Improvement Suggestions
+      </h2>
+
+      {% if analysis.suggestions %}
+        <div class="suggestions-list" role="list">
+          {% for s in analysis.suggestions %}
+            <div class="suggestion-item priority-{{ s.priority }}" role="listitem">
+              <span class="suggestion-priority-badge badge-{{ s.priority }}">{{ s.priority }}</span>
+              <div class="suggestion-content">
+                <div class="suggestion-category">{{ s.category }}</div>
+                <div class="suggestion-message">{{ s.message }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="card" style="text-align:center;padding:var(--space-8);">
+          <p style="font-size: var(--font-size-2xl)">🎉</p>
+          <p style="color:var(--success);font-weight:700;">Your resume looks excellent — no major improvements needed!</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- Contact Details (if extracted) -->
+    {% if resume.email or resume.phone or resume.linkedin or resume.github %}
+    <section aria-labelledby="contact-heading" class="fade-in delay-5">
+      <h2 class="section-title" id="contact-heading">
+        <span class="section-icon">👤</span>
+        Extracted Contact Info
+      </h2>
+      <div class="card card-sm" style="display:flex;flex-wrap:wrap;gap:var(--space-5);">
+        {% if resume.email %}
+          <div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">Email</div>
+            <div style="font-size:var(--font-size-sm);color:var(--text-primary);">{{ resume.email }}</div>
+          </div>
+        {% endif %}
+        {% if resume.phone %}
+          <div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">Phone</div>
+            <div style="font-size:var(--font-size-sm);color:var(--text-primary);">{{ resume.phone }}</div>
+          </div>
+        {% endif %}
+        {% if resume.linkedin %}
+          <div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">LinkedIn</div>
+            <a href="{{ resume.linkedin }}" target="_blank" rel="noopener" style="font-size:var(--font-size-sm);">{{ resume.linkedin }}</a>
+          </div>
+        {% endif %}
+        {% if resume.github %}
+          <div>
+            <div style="font-size:var(--font-size-xs);color:var(--text-muted);margin-bottom:2px;">GitHub</div>
+            <a href="{{ resume.github }}" target="_blank" rel="noopener" style="font-size:var(--font-size-sm);">{{ resume.github }}</a>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- CTA -->
+    <div class="fade-in delay-5" style="text-align:center;margin-top:var(--space-12);">
+      <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-lg">
+        🔄 &nbsp; Analyze Another Resume
+      </a>
+      &nbsp;&nbsp;
+      <a href="{{ url_for('main.history') }}" class="btn btn-outline">
+        📋 View History
+      </a>
+      &nbsp;&nbsp;
+      <a href="{{ url_for('builder.index', resume_id=resume.id) }}" class="btn btn-outline">
+        ✍️ Improve in Resume Builder
+      </a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis History{% endblock %}
+{% block meta_description %}View your past resume analyses and track your improvement over time.{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="container">
+
+    <!-- Header -->
+    <div class="fade-in" style="margin-bottom: var(--space-8);">
+      <h1 class="section-title" style="font-size: var(--font-size-3xl);">
+        <span class="section-icon">📋</span>
+        Analysis History
+      </h1>
+      <p style="color: var(--text-secondary); font-size: var(--font-size-sm);">
+        Your last {{ resume_data | length }} resume {{ 'analyses' if resume_data | length != 1 else 'analysis' }} from this session.
+      </p>
+    </div>
+
+    {% if resume_data %}
+      <div class="card fade-in delay-1">
+        <div class="history-table-wrapper">
+          <table class="history-table" aria-label="Resume analysis history">
+            <thead>
+              <tr>
+                <th scope="col">Resume</th>
+                <th scope="col">Target Role</th>
+                <th scope="col">Resume Score</th>
+                <th scope="col">ATS Score</th>
+                <th scope="col">Date</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in resume_data %}
+                {% set r = item.resume %}
+                {% set a = item.analysis %}
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:var(--space-3);">
+                      <span style="font-size:1.2rem;">{{ '📄' if r.file_type == '.pdf' else '📝' }}</span>
+                      <div>
+                        <div style="font-weight:600;color:var(--text-white);">{{ r.original_filename }}</div>
+                        <div style="font-size:var(--font-size-xs);color:var(--text-muted);">{{ r.word_count }} words</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span style="
+                      background: var(--accent-glow);
+                      border: 1px solid rgba(108,99,255,0.3);
+                      color: var(--accent-light);
+                      padding: 2px 10px;
+                      border-radius: var(--radius-full);
+                      font-size: var(--font-size-xs);
+                      font-weight: 600;
+                    ">
+                      {{ a.target_role if a else '—' }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if a %}
+                      {% set rs = a.resume_score %}
+                      <span class="score-pill {% if rs >= 80 %}grade-excellent{% elif rs >= 60 %}grade-good{% elif rs >= 40 %}grade-average{% else %}grade-needs{% endif %}">
+                        {{ rs | int }}/100
+                      </span>
+                    {% else %}
+                      <span style="color:var(--text-muted);">—</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if a %}
+                      {% set ats = a.ats_score %}
+                      <span class="score-pill {% if ats >= 70 %}grade-excellent{% elif ats >= 40 %}grade-average{% else %}grade-needs{% endif %}">
+                        {{ ats | int }}%
+                      </span>
+                    {% else %}
+                      <span style="color:var(--text-muted);">—</span>
+                    {% endif %}
+                  </td>
+                  <td style="color:var(--text-secondary);font-size:var(--font-size-xs);">
+                    {{ r.uploaded_at.strftime('%b %d, %Y') }}<br/>
+                    {{ r.uploaded_at.strftime('%H:%M') }}
+                  </td>
+                  <td>
+                    {% if a %}
+                      <a href="{{ url_for('main.dashboard', analysis_id=a.id) }}" class="btn btn-outline btn-sm">
+                        View →
+                      </a>
+                    {% else %}
+                      <span style="color:var(--text-muted);font-size:var(--font-size-xs);">No analysis</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:var(--space-8);" class="fade-in delay-2">
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+          🚀 &nbsp;Analyze a New Resume
+        </a>
+      </div>
+
+    {% else %}
+      <!-- Empty State -->
+      <div class="card empty-state fade-in delay-1">
+        <span class="empty-icon">📭</span>
+        <h2 class="empty-title">No analyses yet</h2>
+        <p class="empty-desc">You haven't analyzed any resumes in this session yet.</p>
+        <a href="{{ url_for('main.index') }}" class="btn btn-primary btn-lg">
+          🚀 &nbsp;Analyze Your First Resume
+        </a>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,420 @@
+{% extends "base.html" %}
+
+{% block title %}Resume Builder{% endblock %}
+{% block meta_description %}Build an ATS-friendly resume with a live score, AI rewriting and PDF/DOCX export.{% endblock %}
+
+{% block extra_head %}
+<style>
+  .builder-wrap { max-width: 1360px; margin: 0 auto; padding: 0 var(--space-6); }
+  .b-head { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-end; justify-content: space-between; margin-bottom: var(--space-8); }
+  .b-title { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900; letter-spacing: -0.03em; color: var(--text-white); line-height: 1.15; margin-bottom: var(--space-2); }
+  .b-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+  .b-actions .form-select { width: auto; padding: var(--space-3) var(--space-10) var(--space-3) var(--space-4); font-size: var(--font-size-sm); }
+
+  .b-layout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: var(--space-6); align-items: start; }
+  .b-aside { position: sticky; top: 88px; max-height: calc(100vh - 104px); overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: var(--space-5); }
+  .b-aside::-webkit-scrollbar { width: 6px; }
+  .b-aside::-webkit-scrollbar-thumb { background: var(--border-glass); border-radius: 9px; }
+  @media (max-width: 1000px) {
+    .b-layout { grid-template-columns: 1fr; }
+    .b-aside { position: static; max-height: none; overflow: visible; }
+    .builder-wrap { padding: 0 var(--space-4); }
+  }
+
+  /* collapsible form sections */
+  .b-sec { padding: 0; margin-bottom: var(--space-4); overflow: hidden; }
+  .b-sec > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-5); font-weight: 700; color: var(--text-white); user-select: none; }
+  .b-sec > summary::-webkit-details-marker { display: none; }
+  .b-sec > summary::after { content: "›"; margin-left: auto; font-size: 1.4rem; color: var(--text-muted); transition: transform var(--transition-base); }
+  .b-sec[open] > summary::after { transform: rotate(90deg); }
+  .b-ico { width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--accent-glow); font-size: 16px; }
+  .b-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.14); transition: all var(--transition-base); }
+  .b-sec.is-done .b-dot { background: var(--success); box-shadow: 0 0 10px rgba(0,214,143,.6); }
+  .b-body { padding: 0 var(--space-5) var(--space-5); }
+  .b-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-3); }
+
+  .b-input { width: 100%; padding: var(--space-3) var(--space-4); background: rgba(255,255,255,.04); border: 1px solid var(--border-glass); border-radius: var(--radius-md); color: var(--text-primary); font-family: var(--font-sans); font-size: var(--font-size-sm); transition: border-color var(--transition-base), box-shadow var(--transition-base); }
+  .b-input::placeholder { color: var(--text-muted); }
+  .b-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  textarea.b-input { resize: vertical; line-height: 1.5; margin-top: var(--space-3); }
+  .b-sec .b-body > textarea.b-input:first-child { margin-top: 0; }
+
+  .entry { background: rgba(255,255,255,.03); border: 1px solid var(--border-glass); border-radius: var(--radius-lg); padding: var(--space-4); margin-bottom: var(--space-3); }
+  .entry-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); font-size: var(--font-size-xs); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-3); }
+  .btn-ghost-danger { background: transparent; color: var(--danger); border: 1px solid rgba(255,107,107,.25); }
+  .btn-ghost-danger:hover { background: var(--danger-bg); }
+  .btn:disabled { opacity: .65; cursor: wait; transform: none; }
+
+  /* score panel */
+  .b-panel { padding: var(--space-5); }
+  .b-panel h3 { font-size: var(--font-size-sm); font-weight: 700; color: var(--text-white); display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-4); }
+  .rings { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  .mini { text-align: center; }
+  .mini-wrap { position: relative; width: 112px; height: 112px; margin: 0 auto var(--space-3); }
+  .mini-wrap svg { width: 112px; height: 112px; transform: rotate(-90deg); }
+  .mr-bg { fill: none; stroke: rgba(255,255,255,.07); stroke-width: 9; }
+  .mr-fg { fill: none; stroke-width: 9; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(.4,0,.2,1); }
+  .mini-c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .mini-c b { font-size: 1.9rem; font-weight: 900; color: var(--text-white); line-height: 1; letter-spacing: -.04em; }
+  .mini-c small { font-size: var(--font-size-xs); color: var(--text-muted); }
+  .mini-l { font-size: var(--font-size-sm); font-weight: 700; color: var(--text-white); margin-bottom: var(--space-1); }
+
+  .cmpl-wrap { margin-top: var(--space-5); }
+  .cmpl-top { display: flex; justify-content: space-between; font-size: var(--font-size-xs); color: var(--text-secondary); margin-bottom: var(--space-2); }
+  .cmpl-bar { height: 6px; background: rgba(255,255,255,.07); border-radius: var(--radius-full); overflow: hidden; }
+  .cmpl-bar div { height: 100%; width: 0; background: var(--grad-brand); border-radius: var(--radius-full); transition: width .6s ease; }
+
+  .cat-row { margin-bottom: var(--space-3); }
+  .cat-top { display: flex; justify-content: space-between; font-size: var(--font-size-xs); color: var(--text-secondary); margin-bottom: 4px; }
+  .cat-top b { color: var(--text-white); }
+  .cat-bar { height: 5px; background: rgba(255,255,255,.07); border-radius: var(--radius-full); overflow: hidden; }
+  .cat-bar div { height: 100%; border-radius: var(--radius-full); transition: width .8s ease; }
+  .tips { list-style: none; margin-top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); }
+  .tips li { font-size: var(--font-size-xs); color: var(--text-secondary); padding-left: var(--space-4); position: relative; line-height: 1.5; }
+  .tips li::before { content: "→"; position: absolute; left: 0; color: var(--accent-light); }
+  .kw-wrap { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .kw { padding: 3px 10px; border-radius: var(--radius-full); font-size: var(--font-size-xs); font-weight: 600; text-transform: capitalize; background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(255,107,107,.25); }
+  .kw.ok { background: var(--success-bg); color: var(--success); border-color: rgba(0,214,143,.25); }
+  .hint { font-size: var(--font-size-xs); color: var(--text-muted); margin-top: var(--space-3); }
+
+  /* paper preview */
+  .sheet { background: #fff; color: #1a1a1a; border-radius: 6px; padding: 34px 38px; min-height: 460px; font-family: Calibri, Arial, sans-serif; font-size: 12.5px; line-height: 1.45; box-shadow: 0 14px 44px rgba(0,0,0,.55); }
+  .sheet h2 { font-size: 22px; margin: 0; color: #111; letter-spacing: -.01em; }
+  .sheet h4 { font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1.5px solid #333; margin: 14px 0 5px; padding-bottom: 2px; color: #111; }
+  .sheet p { margin: 2px 0; }
+  .sheet ul { margin: 2px 0 5px 18px; padding: 0; }
+  .sheet .c { font-size: 11.5px; color: #555; }
+  .sheet .empty { color: #999; font-style: italic; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="builder-wrap">
+
+    <!-- gradients for the score rings -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <defs>
+        <linearGradient id="bgr" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#6c63ff"/><stop offset="50%" stop-color="#a855f7"/><stop offset="100%" stop-color="#ec4899"/>
+        </linearGradient>
+        <linearGradient id="bga" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00d68f"/><stop offset="100%" stop-color="#00b4d8"/>
+        </linearGradient>
+      </defs>
+    </svg>
+
+    <header class="b-head fade-in">
+      <div>
+        <div class="hero-badge"><span>✍️</span><span>Resume Builder</span></div>
+        <h1 class="b-title">Build an <span class="text-gradient">ATS-ready</span> resume</h1>
+        <p class="text-secondary">Fill in the sections, watch your score update live, then download it as PDF or DOCX.</p>
+      </div>
+      <div class="b-actions">
+        <select id="role" class="form-select" aria-label="Target role">
+          {% for r in roles %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="fillSample()">🧪 Load sample</button>
+        <button class="btn btn-outline btn-sm" onclick="exportAs('docx', this)">⬇ DOCX</button>
+        <button class="btn btn-primary btn-sm" onclick="exportAs('pdf', this)">⬇ Download PDF</button>
+      </div>
+    </header>
+
+    <div class="b-layout fade-in delay-1">
+
+      <!-- ============ FORM ============ -->
+      <div>
+        <details class="card b-sec" id="sec-contact" open>
+          <summary><span class="b-ico">👤</span>Contact<span class="b-dot"></span></summary>
+          <div class="b-body"><div class="b-grid">
+            <input class="b-input" data-path="contact.name" placeholder="Full name" aria-label="Full name" autocomplete="name">
+            <input class="b-input" data-path="contact.email" placeholder="Email" aria-label="Email" autocomplete="email">
+            <input class="b-input" data-path="contact.phone" placeholder="Phone" aria-label="Phone" autocomplete="tel">
+            <input class="b-input" data-path="contact.location" placeholder="City, Country" aria-label="Location">
+            <input class="b-input" data-path="contact.linkedin" placeholder="linkedin.com/in/you" aria-label="LinkedIn">
+            <input class="b-input" data-path="contact.github" placeholder="github.com/you" aria-label="GitHub">
+          </div></div>
+        </details>
+
+        <details class="card b-sec" id="sec-summary" open>
+          <summary><span class="b-ico">📝</span>Summary<span class="b-dot"></span></summary>
+          <div class="b-body">
+            <textarea id="summary" class="b-input" rows="3" data-path="summary" placeholder="2-3 lines about who you are and what you offer" aria-label="Summary"></textarea>
+            <div class="row"><button class="btn btn-primary btn-sm" onclick="genSummary(this)">✨ Write with AI</button></div>
+          </div>
+        </details>
+
+        <details class="card b-sec" id="sec-skills" open>
+          <summary><span class="b-ico">🛠️</span>Technical Skills<span class="b-dot"></span></summary>
+          <div class="b-body">
+            <textarea class="b-input" rows="2" data-path="skills" placeholder="Python, Flask, SQL, Git, REST API, Machine Learning" aria-label="Technical skills"></textarea>
+            <p class="hint">Separate with commas. Add the missing keywords shown on the right, but only ones you truly have.</p>
+          </div>
+        </details>
+
+        <details class="card b-sec" id="sec-experience" open>
+          <summary><span class="b-ico">💼</span>Work Experience<span class="b-dot"></span></summary>
+          <div class="b-body"><div id="list-experience"></div>
+            <button class="btn btn-outline btn-sm" onclick="addItem('experience')">+ Add experience</button></div>
+        </details>
+
+        <details class="card b-sec" id="sec-projects" open>
+          <summary><span class="b-ico">🚀</span>Projects<span class="b-dot"></span></summary>
+          <div class="b-body"><div id="list-projects"></div>
+            <button class="btn btn-outline btn-sm" onclick="addItem('projects')">+ Add project</button></div>
+        </details>
+
+        <details class="card b-sec" id="sec-education" open>
+          <summary><span class="b-ico">🎓</span>Education<span class="b-dot"></span></summary>
+          <div class="b-body"><div id="list-education"></div>
+            <button class="btn btn-outline btn-sm" onclick="addItem('education')">+ Add education</button></div>
+        </details>
+
+        <details class="card b-sec" id="sec-certifications" open>
+          <summary><span class="b-ico">🏅</span>Certifications<span class="b-dot"></span></summary>
+          <div class="b-body">
+            <textarea class="b-input" rows="3" data-path="certifications" placeholder="One per line, e.g. AWS Cloud Practitioner (Amazon)" aria-label="Certifications"></textarea>
+          </div>
+        </details>
+
+        <button class="btn btn-ghost-danger btn-sm" onclick="startOver()">🗑 Clear everything</button>
+      </div>
+
+      <!-- ============ SCORE + PREVIEW ============ -->
+      <aside class="b-aside" aria-label="Score and preview">
+        <div class="card card-elevated b-panel">
+          <h3>📊 Live score</h3>
+          <div class="rings">
+            <div class="mini">
+              <div class="mini-wrap">
+                <svg viewBox="0 0 110 110" aria-hidden="true"><circle class="mr-bg" cx="55" cy="55" r="44"/><circle id="ringR" class="mr-fg" stroke="url(#bgr)" cx="55" cy="55" r="44"/></svg>
+                <div class="mini-c"><b id="rs">–</b><small>/ 100</small></div>
+              </div>
+              <div class="mini-l">Resume Score</div><span id="rg" class="score-grade grade-needs" style="display:none"></span>
+            </div>
+            <div class="mini">
+              <div class="mini-wrap">
+                <svg viewBox="0 0 110 110" aria-hidden="true"><circle class="mr-bg" cx="55" cy="55" r="44"/><circle id="ringA" class="mr-fg" stroke="url(#bga)" cx="55" cy="55" r="44"/></svg>
+                <div class="mini-c"><b id="as">–</b><small>%</small></div>
+              </div>
+              <div class="mini-l">ATS Match</div><span id="ag" class="score-grade grade-needs" style="display:none"></span>
+            </div>
+          </div>
+          <div class="cmpl-wrap">
+            <div class="cmpl-top"><span>Sections completed</span><span id="cmplTxt">0/7</span></div>
+            <div class="cmpl-bar"><div id="cmpl"></div></div>
+          </div>
+          <p class="hint" id="scoreMsg">Fill in a few sections to see your score.</p>
+        </div>
+
+        <div class="card b-panel" id="detailCard" style="display:none">
+          <h3>📋 Score breakdown</h3>
+          <div id="cats"></div>
+          <ul class="tips" id="tips"></ul>
+        </div>
+
+        <div class="card b-panel" id="kwCard" style="display:none">
+          <h3>🔑 Missing keywords for this role</h3>
+          <div class="kw-wrap" id="missing"></div>
+          <p class="hint">Add these only where they honestly match your experience.</p>
+        </div>
+
+        <div>
+          <p class="form-label" style="margin-bottom:var(--space-3)">Preview &middot; single-column, ATS-safe</p>
+          <div class="sheet" id="preview"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>const PREFILL = {{ prefill|tojson }};</script>
+{% raw %}
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const KEY = "resumeai_draft_v1", RKEY = "resumeai_role";
+const blank = () => ({ contact:{name:"",email:"",phone:"",location:"",linkedin:"",github:""}, summary:"", skills:"", certifications:"", experience:[], education:[], projects:[] });
+let S; try { S = JSON.parse(localStorage.getItem(KEY)) || blank(); } catch (e) { S = blank(); }
+for (const k of ["email","phone","linkedin","github"]) if (PREFILL[k] && !S.contact[k]) S.contact[k] = PREFILL[k];
+
+const LISTS = {
+  experience: { label:"Experience", fields:[["title","Job title"],["company","Company"],["dates","Dates (e.g. Jun 2024 - Present)"]], bullets:"Achievements, one per line", ai:true },
+  projects:   { label:"Project", fields:[["name","Project name"],["link","GitHub / demo link"],["stack","Tech stack"]], bullets:"What you built, one per line", ai:true },
+  education:  { label:"Education", fields:[["degree","Degree"],["school","School / University"],["dates","Dates"],["gpa","GPA / CGPA"]], bullets:null, ai:false }
+};
+const undo = {};
+
+const getPath = p => { const [a,b] = p.split("."); return b ? S[a][b] : S[a]; };
+const setPath = (p,v) => { const [a,b] = p.split("."); if (b) S[a][b] = v; else S[a] = v; };
+
+function toast(msg, type){
+  document.querySelectorAll(".flash-container.t").forEach(n => n.remove());
+  const w = document.createElement("div"); w.className = "flash-container t";
+  w.innerHTML = `<div class="flash ${type || "error"}"><span>${type === "success" ? "✅" : "⚠️"}</span><span>${esc(msg)}</span></div>`;
+  document.body.appendChild(w); setTimeout(() => w.remove(), 4800);
+}
+async function post(url, body){
+  const r = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
+  let j = {}; try { j = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error(j.error || ("Request failed (" + r.status + ")"));
+  return j;
+}
+function busy(btn, text){ btn.dataset.old = btn.innerHTML; btn.disabled = true; btn.innerHTML = `<span class="spinner"></span><span>${text}</span>`; }
+function idle(btn){ btn.disabled = false; if (btn.dataset.old) btn.innerHTML = btn.dataset.old; }
+
+/* ---------- dynamic lists ---------- */
+function renderLists(){
+  for (const [k,cfg] of Object.entries(LISTS)){
+    $("#list-"+k).innerHTML = S[k].map((it,i) => `
+      <div class="entry">
+        <div class="entry-top"><span>${cfg.label} ${i+1}</span><button class="btn btn-ghost-danger btn-sm" onclick="removeItem('${k}',${i})" aria-label="Remove">✕</button></div>
+        <div class="b-grid">${cfg.fields.map(([f,ph]) => `<input class="b-input" data-list="${k}" data-i="${i}" data-f="${f}" placeholder="${ph}" aria-label="${ph}" value="${esc(it[f])}">`).join("")}</div>
+        ${cfg.bullets ? `<textarea class="b-input" rows="4" data-list="${k}" data-i="${i}" data-f="bullets" placeholder="${cfg.bullets}" aria-label="${cfg.bullets}">${esc(it.bullets)}</textarea>` : ""}
+        ${cfg.ai ? `<div class="row"><button class="btn btn-primary btn-sm" onclick="improve(this,'${k}',${i})">✨ Improve with AI</button>${undo[k+i] !== undefined ? `<button class="btn btn-outline btn-sm" onclick="undoAI('${k}',${i})">↩ Undo AI</button>` : ""}</div>` : ""}
+      </div>`).join("");
+  }
+}
+const addItem = k => { S[k].push({}); renderLists(); changed(); };
+const removeItem = (k,i) => { S[k].splice(i,1); renderLists(); changed(); };
+const undoAI = (k,i) => { S[k][i].bullets = undo[k+i]; delete undo[k+i]; renderLists(); changed(); };
+const syncInputs = () => document.querySelectorAll("[data-path]").forEach(el => el.value = getPath(el.dataset.path) || "");
+
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.dataset.path) setPath(t.dataset.path, t.value);
+  else if (t.dataset.list) S[t.dataset.list][+t.dataset.i][t.dataset.f] = t.value;
+  else return;
+  changed();
+});
+
+/* ---------- AI ---------- */
+async function improve(btn,k,i){
+  const it = S[k][i];
+  if (!(it.bullets || "").trim()) return toast("Add a few bullet points first.");
+  busy(btn, "Improving…");
+  try {
+    const r = await post("/builder/api/improve", { bullets: it.bullets, role: $("#role").value, context: (it.title || it.name || "") + " " + (it.company || it.stack || "") });
+    undo[k+i] = it.bullets; it.bullets = r.bullets.join("\n");
+    renderLists(); changed();
+    toast("Rewritten. Replace any [X%] placeholders with your real numbers.", "success");
+  } catch (e) { toast(e.message); idle(btn); }
+}
+async function genSummary(btn){
+  busy(btn, "Writing…");
+  try {
+    const r = await post("/builder/api/summary", { draft:S, role:$("#role").value });
+    S.summary = r.summary; $("#summary").value = r.summary; changed();
+  } catch (e) { toast(e.message); }
+  idle(btn);
+}
+
+/* ---------- preview ---------- */
+const lines = v => String(v || "").split("\n").map(s => s.replace(/^[\s•\-*]+/, "").trim()).filter(Boolean);
+const ul = v => lines(v).length ? `<ul>${lines(v).map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : "";
+function renderPreview(){
+  const c = S.contact;
+  const contact = [c.email,c.phone,c.location,c.linkedin,c.github].filter(Boolean).map(esc).join(" | ");
+  let h = `<h2>${esc(c.name || "Your Name")}</h2><p class="c">${contact || '<span class="empty">email | phone | location</span>'}</p>`;
+  const sec = (t,b) => b ? `<h4>${t}</h4>${b}` : "";
+  h += sec("Summary", S.summary.trim() ? `<p>${esc(S.summary)}</p>` : "");
+  const sk = S.skills.split(/[,;\n]/).map(x => x.trim()).filter(Boolean);
+  h += sec("Technical Skills", sk.length ? `<p>${esc(sk.join(", "))}</p>` : "");
+  h += sec("Work Experience", S.experience.map(e => ((e.title || e.company) ? `<p><b>${esc([e.title,e.company].filter(Boolean).join(" - "))}</b>${e.dates ? " | " + esc(e.dates) : ""}</p>` : "") + ul(e.bullets)).join(""));
+  h += sec("Projects", S.projects.map(p => (p.name ? `<p><b>${esc(p.name)}</b>${p.link ? " | " + esc(p.link) : ""}</p>` : "") + (p.stack ? `<p>Tech stack: ${esc(p.stack)}</p>` : "") + ul(p.bullets)).join(""));
+  h += sec("Education", S.education.map(e => (e.degree || e.school) ? `<p><b>${esc([e.degree,e.school].filter(Boolean).join(" - "))}</b>${e.dates ? " | " + esc(e.dates) : ""}</p>${e.gpa ? `<p>GPA/CGPA: ${esc(e.gpa)}</p>` : ""}` : "").join(""));
+  h += sec("Certifications", ul(S.certifications));
+  if (!S.summary.trim() && !sk.length && !S.experience.length) h += `<p class="empty" style="margin-top:18px">Your resume appears here as you type.</p>`;
+  $("#preview").innerHTML = h;
+}
+
+/* ---------- completeness ---------- */
+const DONE = {
+  contact: () => !!(S.contact.name && S.contact.email),
+  summary: () => !!S.summary.trim(),
+  skills: () => !!S.skills.trim(),
+  experience: () => S.experience.some(e => e.title || lines(e.bullets).length),
+  projects: () => S.projects.some(p => p.name || lines(p.bullets).length),
+  education: () => S.education.some(e => e.degree || e.school),
+  certifications: () => lines(S.certifications).length > 0
+};
+function updateStatus(){
+  let n = 0;
+  for (const [k,f] of Object.entries(DONE)){ const ok = f(); if (ok) n++; $("#sec-"+k).classList.toggle("is-done", ok); }
+  $("#cmpl").style.width = (n / 7 * 100) + "%"; $("#cmplTxt").textContent = n + "/7";
+}
+
+/* ---------- live score ---------- */
+const CIRC = 2 * Math.PI * 44;
+function ring(id, v){ const el = $(id); el.style.strokeDasharray = CIRC; el.style.strokeDashoffset = CIRC * (1 - Math.max(0, Math.min(100, v)) / 100); }
+ring("#ringR", 0); ring("#ringA", 0);
+function grade(el, v, steps, labels){
+  const i = v >= steps[0] ? 0 : v >= steps[1] ? 1 : v >= steps[2] ? 2 : 3;
+  el.className = "score-grade " + ["grade-excellent","grade-good","grade-average","grade-needs"][i]; el.textContent = labels[i]; el.style.display = "inline-flex";
+}
+let timer;
+const scheduleScore = () => { clearTimeout(timer); timer = setTimeout(runScore, 900); };
+async function runScore(){
+  try {
+    const r = await post("/builder/api/score", { draft:S, role:$("#role").value });
+    $("#rs").textContent = Math.round(r.resume_score); $("#as").textContent = Math.round(r.ats_score);
+    ring("#ringR", r.resume_score); ring("#ringA", r.ats_score);
+    grade($("#rg"), r.resume_score, [80,60,40], ["✨ Excellent","👍 Good","⚠️ Average","🔴 Needs Work"]);
+    grade($("#ag"), r.ats_score, [70,55,40], ["✅ ATS-Friendly","👍 Good","⚠️ Moderate","🔴 Low Match"]);
+    $("#scoreMsg").textContent = "";
+    $("#cats").innerHTML = r.categories.map(c => {
+      const p = c.max_points ? c.points / c.max_points * 100 : 0;
+      const bg = p >= 70 ? "var(--grad-success)" : p >= 40 ? "linear-gradient(90deg,var(--warning),#ff9500)" : "linear-gradient(90deg,var(--danger),#ff4444)";
+      return `<div class="cat-row"><div class="cat-top"><span>${esc(c.label)}</span><b>${Math.round(c.points)}/${Math.round(c.max_points)}</b></div><div class="cat-bar"><div style="width:${p}%;background:${bg}"></div></div></div>`;
+    }).join("");
+    const tips = r.categories.filter(c => c.points < c.max_points).flatMap(c => (c.notes || []).map(n => n)).slice(0, 5);
+    $("#tips").innerHTML = tips.map(t => `<li>${esc(t)}</li>`).join("");
+    $("#detailCard").style.display = "block";
+    const miss = r.missing_skills.slice(0, 16);
+    $("#missing").innerHTML = miss.length ? miss.map(s => `<span class="kw">${esc(s)}</span>`).join("") : '<span class="kw ok">🎉 All required keywords found</span>';
+    $("#kwCard").style.display = "block";
+  } catch (e) { $("#scoreMsg").textContent = e.message; }
+}
+
+function changed(){
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  renderPreview(); updateStatus(); scheduleScore();
+}
+
+/* ---------- export / misc ---------- */
+async function exportAs(fmt, btn){
+  busy(btn, "Preparing…");
+  try {
+    const r = await fetch("/builder/export/" + fmt, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({draft:S}) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || "Export failed"); }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(await r.blob()); a.download = "resume." + fmt; a.click(); URL.revokeObjectURL(a.href);
+  } catch (e) { toast(e.message); }
+  idle(btn);
+}
+function startOver(){ if (confirm("Clear the whole form?")) { try { localStorage.removeItem(KEY); } catch (e) {} location.href = "/builder"; } }
+function fillSample(){
+  if (!confirm("Replace the form with sample data?")) return;
+  S = {
+    contact:{name:"Alex Sharma",email:"alex.sharma@example.com",phone:"+91 98765 43210",location:"Delhi, India",linkedin:"linkedin.com/in/alexsharma",github:"github.com/alexsharma"},
+    summary:"Computer science graduate with hands-on experience building REST APIs and data dashboards in Python and Flask.",
+    skills:"Python, Flask, SQL, Git, REST API, Pandas, HTML, CSS, JavaScript",
+    certifications:"AWS Cloud Practitioner (Amazon)\nPython for Everybody (Coursera)",
+    experience:[{title:"Software Intern",company:"TechNova",dates:"Jun 2025 - Aug 2025",bullets:"Built REST APIs with Flask for an internal tool\nWrote SQL queries to generate weekly reports\nFixed bugs and wrote unit tests"}],
+    projects:[{name:"Smart Resume Analyzer",link:"github.com/alexsharma/resume-analyzer",stack:"Flask, SQLAlchemy, pdfplumber",bullets:"Built an ATS keyword matcher with n-gram tokenization\nAdded a weighted 7-category scoring engine"}],
+    education:[{degree:"B.Tech Computer Science",school:"Example University",dates:"2021 - 2025",gpa:"8.4 CGPA"}]
+  };
+  syncInputs(); renderLists(); changed();
+}
+
+/* ---------- init ---------- */
+const savedRole = (() => { try { return localStorage.getItem(RKEY); } catch (e) { return null; } })();
+if (savedRole && [...$("#role").options].some(o => o.value === savedRole)) $("#role").value = savedRole;
+$("#role").addEventListener("change", () => { try { localStorage.setItem(RKEY, $("#role").value); } catch (e) {} scheduleScore(); });
+for (const k of Object.keys(LISTS)) if (!S[k].length) S[k].push({});
+syncInputs(); renderLists(); renderPreview(); updateStatus(); scheduleScore();
+</script>
+{% endraw %}
+{% endblock %}
